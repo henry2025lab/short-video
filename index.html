@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>模拟短视频调研系统</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.css" />
+    <style>
+        :root {
+            --douyin-red: #fe2c55;
+            --douyin-black: #161823;
+        }
+
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+        body, html { margin: 0; padding: 0; height: 100%; background: #000; overflow: hidden; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica; }
+
+        /* 1. 顶部导航 */
+        .nav-bar {
+            position: fixed; top: 0; left: 0; width: 100%; height: 50px;
+            display: flex; align-items: center; overflow-x: auto; 
+            white-space: nowrap; z-index: 100; background: linear-gradient(to bottom, rgba(0,0,0,0.6), transparent);
+            padding: 0 10px; scrollbar-width: none;
+        }
+        .nav-item {
+            color: rgba(255,255,255,0.7); padding: 10px 15px; font-size: 16px; font-weight: bold; cursor: pointer;
+        }
+        .nav-item.active { color: #fff; border-bottom: 2px solid #fff; }
+
+        /* 2. 视频容器 */
+        .swiper { width: 100%; height: 100%; }
+        .swiper-slide { position: relative; background: #000; }
+        video { width: 100%; height: 100%; object-fit: cover; }
+
+        /* 3. 右侧交互 */
+        .side-bar {
+            position: absolute; right: 10px; bottom: 150px; 
+            display: flex; flex-direction: column; gap: 20px; z-index: 10;
+        }
+        .side-icon { text-align: center; color: #fff; font-size: 12px; }
+        .icon-circle { width: 45px; height: 45px; background: rgba(255,255,255,0.2); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 24px; margin-bottom: 5px; }
+
+        /* 4. 左下角文案 */
+        .bottom-info {
+            position: absolute; left: 10px; bottom: 30px; width: 70%;
+            color: #fff; z-index: 10; text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
+        }
+        .user-name { font-size: 17px; font-weight: bold; margin-bottom: 8px; }
+        .video-desc { font-size: 14px; margin-bottom: 12px; line-height: 1.4; }
+        .team-up-btn {
+            display: inline-block; padding: 8px 16px; background: var(--douyin-red);
+            border-radius: 20px; font-weight: bold; font-size: 14px; animation: pulse 2s infinite;
+        }
+
+        /* 5. 弹幕层 */
+        .danmaku-container { position: absolute; top: 80px; width: 100%; height: 200px; pointer-events: none; z-index: 5; }
+        .danmaku-item {
+            position: absolute; white-space: nowrap; color: #fff; text-shadow: 1px 1px 2px #000;
+            font-size: 14px; animation: danmaku-move linear forwards;
+        }
+
+        /* 6. 弹窗公共样式 */
+        .modal {
+            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.85); z-index: 1000; align-items: center; justify-content: center;
+        }
+        .modal-body { width: 85%; background: #fff; border-radius: 16px; padding: 25px; color: #333; }
+
+        /* 7. 匹配动画样式 */
+        .matching-ui { text-align: center; color: #fff; }
+        .radar {
+            width: 120px; height: 120px; border: 2px solid var(--douyin-red); border-radius: 50%;
+            margin: 0 auto 20px; position: relative; animation: radar-spin 2s linear infinite;
+        }
+        .radar::after { content: ''; position: absolute; top: 50%; left: 50%; width: 50%; height: 2px; background: var(--douyin-red); transform-origin: left center; }
+
+        /* 动画定义 */
+        @keyframes danmaku-move { from { transform: translateX(100vw); } to { transform: translateX(-150%); } }
+        @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.05); } 100% { transform: scale(1); } }
+        @keyframes radar-spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+
+        /* 问卷样式 */
+        .survey-title { font-size: 18px; font-weight: bold; margin-bottom: 15px; color: #000; }
+        .survey-item { margin-bottom: 15px; }
+        .survey-item label { display: block; margin: 8px 0; }
+        .submit-btn { width: 100%; background: var(--douyin-red); color: #fff; border: none; padding: 12px; border-radius: 8px; font-weight: bold; }
+    </style>
+</head>
+<body>
+
+    <div class="nav-bar" id="navBar">
+        <div class="nav-item active" onclick="filterCategory('推荐', this)">推荐</div>
+        <div class="nav-item" onclick="filterCategory('美食', this)">美食</div>
+        <div class="nav-item" onclick="filterCategory('学习', this)">学习</div>
+        <div class="nav-item" onclick="filterCategory('旅行', this)">旅行</div>
+        <div class="nav-item" onclick="filterCategory('游戏', this)">游戏</div>
+        <div class="nav-item" onclick="filterCategory('校园生活', this)">校园生活</div>
+    </div>
+
+    <div class="swiper">
+        <div class="swiper-wrapper" id="videoWrapper">
+            </div>
+    </div>
+
+    <div id="surveyModal" class="modal">
+        <div class="modal-body">
+            <div class="survey-title">视频反馈调研</div>
+            <div class="survey-item">
+                <p>1. 你刚才看到的视频属于哪一类？</p>
+                <label><input type="radio" name="cat" value="美食"> 美食</label>
+                <label><input type="radio" name="cat" value="学习"> 学习</label>
+                <label><input type="radio" name="cat" value="旅行"> 旅行</label>
+                <label><input type="radio" name="cat" value="校园"> 校园生活</label>
+            </div>
+            <div class="survey-item">
+                <p>2. 你喜欢这个视频吗？理由是？</p>
+                <textarea id="reason" style="width:100%; height:60px; border:1px solid #ddd; border-radius:4px;"></textarea>
+            </div>
+            <button class="submit-btn" onclick="submitSurvey()">提交并继续观看</button>
+        </div>
+    </div>
+
+    <div id="matchModal" class="modal">
+        <div id="matchingUI" class="matching-ui">
+            <div class="radar"></div>
+            <p>正在匹配附近的探店队友...</p>
+        </div>
+        <div id="matchResult" class="modal-body" style="display:none; text-align:center;">
+            <div style="font-size:40px;">🎉</div>
+            <h3 style="margin:10px 0;">匹配成功！</h3>
+            <img id="m-avatar" src="" style="width:80px; height:80px; border-radius:50%; border:3px solid var(--douyin-red);">
+            <p style="font-weight:bold; margin:10px 0;" id="m-name"></p>
+            <p style="color:#666; font-size:13px;">匹配度：<span id="m-rate" style="color:var(--douyin-red)"></span></p>
+            <button class="submit-btn" onclick="closeModal('matchModal')">发送打招呼</button>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.js"></script>
+    <script>
+        // 1. 数据准备
+        const videoData = [
+            { id: 1, cat: "美食", url: "01.mp4", user: "@大胃王强哥", desc: "这家烤肉店有人去过吗？求组队！", danmaku: ["真的好吃吗", "组我一个", "坐标哪里？"], team: { name: "美食家小李", rate: "98%", avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=1" } },
+            { id: 2, cat: "学习", url: "02.mp4", user: "@学霸猫", desc: "沉浸式学习，有人一起连麦吗？", danmaku: ["加油", "打卡第5天", "自律赛高"], team: { name: "考研党小王", rate: "92%", avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=2" } },
+            { id: 3, cat: "旅行", url: "03.mp4", user: "@旅行达人", desc: "这里的风景太美了！", danmaku: ["好想去", "在哪里", "求攻略"], team: { name: "旅行伙伴小张", rate: "95%", avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=3" } },
+            { id: 4, cat: "游戏", url: "04.mp4", user: "@电竞少年", desc: "谁来一起开黑？", danmaku: ["带我", "段位多少", "加好友"], team: { name: "游戏队友小刘", rate: "90%", avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=4" } },
+            { id: 5, cat: "校园生活", url: "05.mp4", user: "@校园vlog", desc: "大学生活日常分享", danmaku: ["好羡慕", "同校", "点赞"], team: { name: "同学小陈", rate: "94%", avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=5" } },
+            { id: 6, cat: "美食", url: "06.mp4", user: "@美食探店", desc: "新开的奶茶店超好喝！", danmaku: ["在哪里", "多少钱", "想喝"], team: { name: "美食搭子小周", rate: "97%", avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=6" } },
+            { id: 7, cat: "学习", url: "07.mp4", user: "@考研上岸", desc: "备考经验分享", danmaku: ["收藏了", "有用", "加油"], team: { name: "学习伙伴小孙", rate: "93%", avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=7" } },
+        ];
+        
+        // 自动补充到20个进行测试（循环使用前7个视频）
+        for(let i=8; i<=20; i++) {
+            const baseVideo = videoData[(i-1) % 7];
+            videoData.push({
+                ...baseVideo, 
+                id: i, 
+                url: `0${((i-1) % 7) + 1}.mp4`,
+                desc: `${baseVideo.desc}（视频 ${i}）`
+            });
+        }
+
+        let currentCategory = "推荐";
+        let watchedCount = 0;
+        let swiper;
+
+        // 2. 初始化视频流
+        function initSwiper(data) {
+            const wrapper = document.getElementById('videoWrapper');
+            wrapper.innerHTML = data.map((item, index) => `
+                <div class="swiper-slide" data-id="${item.id}">
+                    <video loop playsinline src="${item.url}" poster="https://via.placeholder.com/400x800/000000/FFFFFF?text=Loading..."></video>
+                    <div class="danmaku-container"></div>
+                    <div class="side-bar">
+                        <div class="side-icon"><div class="icon-circle" onclick="this.style.color='var(--douyin-red)'">❤️</div><span>1.2w</span></div>
+                        <div class="side-icon"><div class="icon-circle">💬</div><span>456</span></div>
+                        <div class="side-icon"><div class="icon-circle">🔗</div><span>分享</span></div>
+                    </div>
+                    <div class="bottom-info">
+                        <div class="user-name">${item.user}</div>
+                        <div class="video-desc">${item.desc}</div>
+                        <div class="team-up-btn" onclick="startMatch(${index})">🤝 一起组队探店</div>
+                    </div>
+                </div>
+            `).join('');
+
+            if (swiper) swiper.destroy();
+            swiper = new Swiper('.swiper', {
+                direction: 'vertical',
+                on: {
+                    slideChange: function() {
+                        const prevVideo = document.querySelectorAll('video')[this.previousIndex];
+                        if(prevVideo) prevVideo.pause();
+                        
+                        const currentVideo = document.querySelectorAll('video')[this.activeIndex];
+                        currentVideo.play();
+                        
+                        watchedCount++;
+                        if(watchedCount % 5 === 0) {
+                            currentVideo.pause();
+                            document.getElementById('surveyModal').style.display = 'flex';
+                        }
+                        sendDanmaku(this.activeIndex);
+                    }
+                }
+            });
+            document.querySelectorAll('video')[0].play();
+            sendDanmaku(0);
+        }
+
+        // 3. 弹幕功能
+        function sendDanmaku(index) {
+            const container = document.querySelectorAll('.danmaku-container')[index];
+            const texts = videoData[index % videoData.length].danmaku;
+            setInterval(() => {
+                if(swiper.activeIndex !== index) return;
+                const span = document.createElement('span');
+                span.className = 'danmaku-item';
+                span.innerText = texts[Math.floor(Math.random()*texts.length)];
+                span.style.top = Math.random() * 150 + 'px';
+                span.style.animationDuration = (Math.random() * 3 + 4) + 's';
+                container.appendChild(span);
+                setTimeout(() => span.remove(), 7000);
+            }, 2000);
+        }
+
+        // 4. 模拟匹配逻辑
+        function startMatch(index) {
+            const video = document.querySelectorAll('video')[swiper.activeIndex];
+            video.pause();
+            const modal = document.getElementById('matchModal');
+            const ui = document.getElementById('matchingUI');
+            const res = document.getElementById('matchResult');
+            
+            modal.style.display = 'flex';
+            ui.style.display = 'block';
+            res.style.display = 'none';
+
+            // 模拟2.5秒匹配过程
+            setTimeout(() => {
+                const teammate = videoData[index % videoData.length].team;
+                document.getElementById('m-name').innerText = teammate.name;
+                document.getElementById('m-rate').innerText = teammate.rate;
+                document.getElementById('m-avatar').src = teammate.avatar;
+                ui.style.display = 'none';
+                res.style.display = 'block';
+            }, 2500);
+        }
+
+        // 5. 辅助功能
+        function filterCategory(cat, el) {
+            document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
+            el.classList.add('active');
+            const filtered = cat === "推荐" ? videoData : videoData.filter(v => v.cat === cat);
+            initSwiper(filtered);
+        }
+
+        function submitSurvey() {
+            const data = {
+                cat: document.querySelector('input[name="cat"]:checked')?.value,
+                reason: document.getElementById('reason').value,
+                time: new Date().toLocaleString()
+            };
+            console.log("调研数据已存入本地:", data);
+            localStorage.setItem('survey_' + Date.now(), JSON.stringify(data));
+            closeModal('surveyModal');
+        }
+
+        function closeModal(id) {
+            document.getElementById(id).style.display = 'none';
+            document.querySelectorAll('video')[swiper.activeIndex].play();
+        }
+
+        // 启动
+        initSwiper(videoData);
+    </script>
+</body>
+</html>
