@@ -83,6 +83,39 @@
         .survey-item { margin-bottom: 15px; }
         .survey-item label { display: block; margin: 8px 0; }
         .submit-btn { width: 100%; background: var(--douyin-red); color: #fff; border: none; padding: 12px; border-radius: 8px; font-weight: bold; }
+
+        /* 桌面端响应式优化 */
+        @media (min-width: 768px) {
+            body {
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                background: #000;
+            }
+            
+            .swiper {
+                max-width: 450px; /* 限制最大宽度，保持9:16比例 */
+                height: 100vh;
+                margin: 0 auto;
+            }
+            
+            .swiper-slide {
+                background: #000;
+            }
+            
+            video {
+                width: 100%;
+                height: 100%;
+                object-fit: contain; /* 改为contain，保持比例不裁剪 */
+            }
+            
+            /* 导航栏在桌面端也需要居中 */
+            .nav-bar {
+                max-width: 450px;
+                left: 50%;
+                transform: translateX(-50%);
+            }
+        }
     </style>
 </head>
 <body>
@@ -138,25 +171,14 @@
     <script>
         // 1. 数据准备
         const videoData = [
-            { id: 1, cat: "美食", url: "01.mp4", user: "@大胃王强哥", desc: "这家烤肉店有人去过吗？求组队！", danmaku: ["真的好吃吗", "组我一个", "坐标哪里？"], team: { name: "美食家小李", rate: "98%", avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=1" } },
-            { id: 2, cat: "学习", url: "02.mp4", user: "@学霸猫", desc: "沉浸式学习，有人一起连麦吗？", danmaku: ["加油", "打卡第5天", "自律赛高"], team: { name: "考研党小王", rate: "92%", avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=2" } },
-            { id: 3, cat: "旅行", url: "03.mp4", user: "@旅行达人", desc: "这里的风景太美了！", danmaku: ["好想去", "在哪里", "求攻略"], team: { name: "旅行伙伴小张", rate: "95%", avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=3" } },
-            { id: 4, cat: "游戏", url: "04.mp4", user: "@电竞少年", desc: "谁来一起开黑？", danmaku: ["带我", "段位多少", "加好友"], team: { name: "游戏队友小刘", rate: "90%", avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=4" } },
-            { id: 5, cat: "校园生活", url: "05.mp4", user: "@校园vlog", desc: "大学生活日常分享", danmaku: ["好羡慕", "同校", "点赞"], team: { name: "同学小陈", rate: "94%", avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=5" } },
-            { id: 6, cat: "美食", url: "06.mp4", user: "@美食探店", desc: "新开的奶茶店超好喝！", danmaku: ["在哪里", "多少钱", "想喝"], team: { name: "美食搭子小周", rate: "97%", avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=6" } },
-            { id: 7, cat: "学习", url: "07.mp4", user: "@考研上岸", desc: "备考经验分享", danmaku: ["收藏了", "有用", "加油"], team: { name: "学习伙伴小孙", rate: "93%", avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=7" } },
+            { id: 1, cat: "旅行", url: "01_旅行.mp4", user: "@梁鬼鬼", desc: "长这么大第一次见明星 本人还挺漂亮的#杨超越", danmaku: ["真的假的", "在哪里", "好羡慕", "本人好看吗"], team: { name: "追星小分队", rate: "96%", avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=1" } },
+            { id: 2, cat: "校园生活", url: "02_校园生活.mp4", user: "@Elma.Z", desc: "这哥们儿在干嘛", danmaku: ["卡住了", "熄火", "崩溃呀 😂", "两脚离合", "没气了"], team: { name: "校园车友", rate: "88%", avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=2" } },
+            { id: 3, cat: "美食", url: "03_美食.mp4", user: "@chef chen", desc: "爱吃 好吃 #澳门#澳门美食#澳门旅游#澳门旅游攻略", danmaku: ["看起来不错", "在哪里", "多少钱", "想去"], team: { name: "美食探店团", rate: "95%", avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=3" } },
+            { id: 4, cat: "学习", url: "04_学习.mp4", user: "@Hades和33", desc: "不管有多难,都是值得的!继续努力! #热门法学院毕业生 #法律系学生 #学习动机#励志视频", danmaku: ["加油", "不要放弃", "坚持", "共勉"], team: { name: "学习伙伴", rate: "92%", avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=4" } },
+            { id: 5, cat: "旅行", url: "05_旅行.mp4", user: "@释迦的杂...", desc: "第28集|评测:澳门各大赌场的蹭吃喝走一遍了,如果只是为了蹭吃喝,人该是直奔美...", danmaku: ["真的免费吗", "攻略收藏", "想去", "太实用了"], team: { name: "旅行攻略组", rate: "94%", avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=5" } },
+            { id: 6, cat: "校园生活", url: "06_校园生活.mp4", user: "@黄花菜", desc: "上海商赛#商赛#商业模拟挑战赛 #CEO", danmaku: ["恭喜", "厉害", "怎么参加", "求经验"], team: { name: "商赛队友", rate: "90%", avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=6" } },
+            { id: 7, cat: "旅行", url: "07_旅行.mp4", user: "@猪丽耶", desc: "快来珠海长隆海洋王国吧,现在有395两个人的门票,别错过了~#珠海长隆海洋王国 #珠海...", danmaku: ["好想去", "划算", "已买票", "求攻略"], team: { name: "旅行搭子", rate: "97%", avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=7" } },
         ];
-        
-        // 自动补充到20个进行测试（循环使用前7个视频）
-        for(let i=8; i<=20; i++) {
-            const baseVideo = videoData[(i-1) % 7];
-            videoData.push({
-                ...baseVideo, 
-                id: i, 
-                url: `0${((i-1) % 7) + 1}.mp4`,
-                desc: `${baseVideo.desc}（视频 ${i}）`
-            });
-        }
 
         let currentCategory = "推荐";
         let watchedCount = 0;
