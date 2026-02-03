@@ -1,18 +1,4 @@
 {
-  "version": 2,
-  "name": "short-video",
-  "builds": [
-    {
-      "src": "index.html",
-      "use": "@vercel/static"
-    }
-  ],
-  "routes": [
-    {
-      "src": "/(.*)",
-      "dest": "/$1"
-    }
-  ],
   "headers": [
     {
       "source": "/(.*)",
@@ -24,7 +10,7 @@
       ]
     },
     {
-      "source": "/(.+\\.(mp4|webm))",
+      "source": "/(.*\\.(mp4|webm))",
       "headers": [
         {
           "key": "Cache-Control",
