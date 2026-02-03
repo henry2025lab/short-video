@@ -37,7 +37,14 @@
             display: flex; flex-direction: column; gap: 20px; z-index: 10;
         }
         .side-icon { text-align: center; color: #fff; font-size: 12px; }
-        .icon-circle { width: 45px; height: 45px; background: rgba(255,255,255,0.2); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 24px; margin-bottom: 5px; }
+        .icon-circle { width: 45px; height: 45px; background: rgba(255,255,255,0.2); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 24px; margin-bottom: 5px; cursor: pointer; transition: all 0.3s; }
+        .icon-circle.liked { color: var(--douyin-red); background: rgba(254,44,85,0.3); }
+        .icon-circle:hover { background: rgba(255,255,255,0.3); transform: scale(1.1); }
+        .comment-item { padding:10px 0; border-bottom:1px solid #eee; }
+        .comment-item:last-child { border-bottom:none; }
+        .comment-user { font-weight:bold; color:#333; margin-bottom:5px; }
+        .comment-content { color:#666; font-size:14px; }
+        .comment-time { color:#999; font-size:12px; margin-top:5px; }
 
         /* 4. 左下角文案 */
         .bottom-info {
@@ -167,18 +174,60 @@
         </div>
     </div>
 
+    <div id="commentModal" class="modal">
+        <div class="modal-body" style="max-height:80vh; overflow-y:auto;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
+                <div class="survey-title">评论</div>
+                <button onclick="closeModal('commentModal')" style="background:none; border:none; font-size:24px; cursor:pointer;">&times;</button>
+            </div>
+            <div id="commentsList" style="margin-bottom:20px; max-height:400px; overflow-y:auto;">
+                <!-- 评论列表将在这里动态加载 -->
+            </div>
+            <div style="border-top:1px solid #eee; padding-top:15px;">
+                <textarea id="newComment" placeholder="写下你的评论..." style="width:100%; height:60px; border:1px solid #ddd; border-radius:4px; padding:8px; margin-bottom:10px;"></textarea>
+                <button class="submit-btn" onclick="addComment()">发布评论</button>
+            </div>
+        </div>
+    </div>
+
     <script src="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.js"></script>
     <script>
-        // 1. 数据准备
+        // 1. 数据准备 - 20个视频，每个分类4个
         const videoData = [
-            { id: 1, cat: "旅行", url: "01_旅行.mp4", user: "@梁鬼鬼", desc: "长这么大第一次见明星 本人还挺漂亮的#杨超越", danmaku: ["真的假的", "在哪里", "好羡慕", "本人好看吗"], team: { name: "追星小分队", rate: "96%", avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=1" } },
-            { id: 2, cat: "校园生活", url: "02_校园生活.mp4", user: "@Elma.Z", desc: "这哥们儿在干嘛", danmaku: ["卡住了", "熄火", "崩溃呀 😂", "两脚离合", "没气了"], team: { name: "校园车友", rate: "88%", avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=2" } },
-            { id: 3, cat: "美食", url: "03_美食.mp4", user: "@chef chen", desc: "爱吃 好吃 #澳门#澳门美食#澳门旅游#澳门旅游攻略", danmaku: ["看起来不错", "在哪里", "多少钱", "想去"], team: { name: "美食探店团", rate: "95%", avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=3" } },
-            { id: 4, cat: "学习", url: "04_学习.mp4", user: "@Hades和33", desc: "不管有多难,都是值得的!继续努力! #热门法学院毕业生 #法律系学生 #学习动机#励志视频", danmaku: ["加油", "不要放弃", "坚持", "共勉"], team: { name: "学习伙伴", rate: "92%", avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=4" } },
-            { id: 5, cat: "旅行", url: "05_旅行.mp4", user: "@释迦的杂...", desc: "第28集|评测:澳门各大赌场的蹭吃喝走一遍了,如果只是为了蹭吃喝,人该是直奔美...", danmaku: ["真的免费吗", "攻略收藏", "想去", "太实用了"], team: { name: "旅行攻略组", rate: "94%", avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=5" } },
-            { id: 6, cat: "校园生活", url: "06_校园生活.mp4", user: "@黄花菜", desc: "上海商赛#商赛#商业模拟挑战赛 #CEO", danmaku: ["恭喜", "厉害", "怎么参加", "求经验"], team: { name: "商赛队友", rate: "90%", avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=6" } },
-            { id: 7, cat: "旅行", url: "07_旅行.mp4", user: "@猪丽耶", desc: "快来珠海长隆海洋王国吧,现在有395两个人的门票,别错过了~#珠海长隆海洋王国 #珠海...", danmaku: ["好想去", "划算", "已买票", "求攻略"], team: { name: "旅行搭子", rate: "97%", avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=7" } },
+            // 美食类 (4个)
+            { id: 1, cat: "美食", url: "https://videos.pexels.com/video-files/3045163/3045163-hd_1920_1080_25fps.mp4", user: "@chef chen", desc: "爱吃 好吃 #澳门#澳门美食#澳门旅游#澳门旅游攻略", danmaku: ["看起来很好吃", "在哪里", "多少钱", "想去试试"], team: { name: "美食探店团", rate: "95%", avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=1" } },
+            { id: 2, cat: "美食", url: "https://videos.pexels.com/video-files/3045163/3045163-hd_1920_1080_25fps.mp4", user: "@美食博主小A", desc: "今天做了超好吃的红烧肉！你们想学吗？#美食教程#家常菜", danmaku: ["看起来很好吃", "求教程", "太香了", "收藏了"], team: { name: "美食达人", rate: "93%", avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=2" } },
+            { id: 3, cat: "美食", url: "https://videos.pexels.com/video-files/3045163/3045163-hd_1920_1080_25fps.mp4", user: "@甜品控", desc: "这家店的提拉米苏绝了！入口即化 #甜品#下午茶#探店", danmaku: ["在哪里", "多少钱", "想去试试", "太诱人了"], team: { name: "甜品爱好者", rate: "96%", avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=3" } },
+            { id: 4, cat: "美食", url: "https://videos.pexels.com/video-files/3045163/3045163-hd_1920_1080_25fps.mp4", user: "@深夜食堂", desc: "深夜一碗热腾腾的拉面，治愈一切 #夜宵#拉面#美食", danmaku: ["看起来很好吃", "饿了", "求地址", "太香了"], team: { name: "夜宵搭子", rate: "94%", avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=4" } },
+            
+            // 学习类 (4个)
+            { id: 5, cat: "学习", url: "https://videos.pexels.com/video-files/2491284/2491284-hd_1920_1080_25fps.mp4", user: "@Hades和33", desc: "不管有多难,都是值得的!继续努力! #热门法学院毕业生 #法律系学生 #学习动机#励志视频", danmaku: ["加油", "收藏了", "很有用", "共勉"], team: { name: "学习伙伴", rate: "92%", avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=5" } },
+            { id: 6, cat: "学习", url: "https://videos.pexels.com/video-files/2491284/2491284-hd_1920_1080_25fps.mp4", user: "@考研上岸", desc: "每天5点起床学习，坚持就是胜利！ #考研#自律#学习打卡", danmaku: ["加油", "不要放弃", "坚持", "共勉"], team: { name: "考研战友", rate: "91%", avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=6" } },
+            { id: 7, cat: "学习", url: "https://videos.pexels.com/video-files/2491284/2491284-hd_1920_1080_25fps.mp4", user: "@学霸笔记", desc: "分享我的高效学习方法，希望对大家有帮助 #学习方法#效率#学习技巧", danmaku: ["收藏了", "很有用", "学到了", "感谢分享"], team: { name: "学习小组", rate: "93%", avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=7" } },
+            { id: 8, cat: "学习", url: "https://videos.pexels.com/video-files/2491284/2491284-hd_1920_1080_25fps.mp4", user: "@英语学习", desc: "每天10个单词，一年就是3650个！坚持就是胜利 #英语学习#单词#打卡", danmaku: ["加油", "收藏了", "很有用", "一起学习"], team: { name: "英语学习组", rate: "90%", avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=8" } },
+            
+            // 旅行类 (4个)
+            { id: 9, cat: "旅行", url: "01_旅行.mp4", user: "@梁鬼鬼", desc: "长这么大第一次见明星 本人还挺漂亮的#杨超越", danmaku: ["好想去", "攻略收藏", "太美了", "求地址"], team: { name: "追星小分队", rate: "96%", avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=9" } },
+            { id: 10, cat: "旅行", url: "05_旅行.mp4", user: "@释迦的杂...", desc: "第28集|评测:澳门各大赌场的蹭吃喝走一遍了,如果只是为了蹭吃喝,人该是直奔美...", danmaku: ["好想去", "攻略收藏", "想去", "太实用了"], team: { name: "旅行攻略组", rate: "94%", avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=10" } },
+            { id: 11, cat: "旅行", url: "07_旅行.mp4", user: "@猪丽耶", desc: "快来珠海长隆海洋王国吧,现在有395两个人的门票,别错过了~#珠海长隆海洋王国 #珠海...", danmaku: ["好想去", "划算", "已买票", "求攻略"], team: { name: "旅行搭子", rate: "97%", avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=11" } },
+            { id: 12, cat: "旅行", url: "https://videos.pexels.com/video-files/2491284/2491284-hd_1920_1080_25fps.mp4", user: "@旅行日记", desc: "大理的洱海真的太美了！每一帧都是壁纸 #大理#洱海#旅行#云南", danmaku: ["好想去", "攻略收藏", "太美了", "求地址"], team: { name: "旅行伙伴", rate: "95%", avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=12" } },
+            
+            // 游戏类 (4个)
+            { id: 13, cat: "游戏", url: "https://videos.pexels.com/video-files/3045163/3045163-hd_1920_1080_25fps.mp4", user: "@电竞少年", desc: "五杀！这波操作怎么样？#王者荣耀#五杀#游戏", danmaku: ["带我", "厉害", "加好友", "一起玩"], team: { name: "游戏队友", rate: "90%", avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=13" } },
+            { id: 14, cat: "游戏", url: "https://videos.pexels.com/video-files/3045163/3045163-hd_1920_1080_25fps.mp4", user: "@游戏主播", desc: "新赛季上分攻略，看完就能上王者！ #游戏攻略#上分#技巧", danmaku: ["带我", "厉害", "学到了", "一起玩"], team: { name: "上分小队", rate: "92%", avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=14" } },
+            { id: 15, cat: "游戏", url: "https://videos.pexels.com/video-files/3045163/3045163-hd_1920_1080_25fps.mp4", user: "@游戏达人", desc: "这个游戏太好玩了！有人一起组队吗？ #新游戏#组队#游戏推荐", danmaku: ["带我", "加好友", "一起玩", "求带"], team: { name: "游戏战队", rate: "88%", avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=15" } },
+            { id: 16, cat: "游戏", url: "https://videos.pexels.com/video-files/3045163/3045163-hd_1920_1080_25fps.mp4", user: "@游戏解说", desc: "这波操作细节拉满！你们学会了吗？ #游戏技巧#教学#操作", danmaku: ["厉害", "学到了", "收藏了", "太强了"], team: { name: "技术流", rate: "94%", avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=16" } },
+            
+            // 校园生活类 (4个)
+            { id: 17, cat: "校园生活", url: "02_校园生活.mp4", user: "@Elma.Z", desc: "这哥们儿在干嘛", danmaku: ["同校", "好羡慕", "点赞", "支持"], team: { name: "校园车友", rate: "88%", avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=17" } },
+            { id: 18, cat: "校园生活", url: "06_校园生活.mp4", user: "@黄花菜", desc: "上海商赛#商赛#商业模拟挑战赛 #CEO", danmaku: ["同校", "好羡慕", "点赞", "支持"], team: { name: "商赛队友", rate: "90%", avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=18" } },
+            { id: 19, cat: "校园生活", url: "https://videos.pexels.com/video-files/2491284/2491284-hd_1920_1080_25fps.mp4", user: "@校园vlog", desc: "大学生活日常分享，记录美好时光 #校园生活#vlog#日常", danmaku: ["同校", "好羡慕", "点赞", "支持"], team: { name: "校园伙伴", rate: "92%", avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=19" } },
+            { id: 20, cat: "校园生活", url: "https://videos.pexels.com/video-files/2491284/2491284-hd_1920_1080_25fps.mp4", user: "@学生会", desc: "校园活动精彩瞬间，大家一起参与！ #校园活动#社团#青春", danmaku: ["同校", "好羡慕", "点赞", "支持"], team: { name: "活动组织", rate: "89%", avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=20" } },
         ];
+        
+        // 视频统计数据（从API加载，这里先使用默认值）
+        let videoStats = {};
+        let videoComments = {};
 
         let currentCategory = "推荐";
         let watchedCount = 0;
@@ -187,14 +236,27 @@
         // 2. 初始化视频流
         function initSwiper(data) {
             const wrapper = document.getElementById('videoWrapper');
-            wrapper.innerHTML = data.map((item, index) => `
-                <div class="swiper-slide" data-id="${item.id}">
+            wrapper.innerHTML = data.map((item, index) => {
+                const videoId = item.id;
+                const stats = videoStats[videoId] || { likes: Math.floor(Math.random() * 5000) + 1000, comments: Math.floor(Math.random() * 200) + 50, shares: Math.floor(Math.random() * 300) + 100 };
+                const isLiked = localStorage.getItem(`liked_${videoId}`) === 'true';
+                return `
+                <div class="swiper-slide" data-id="${videoId}">
                     <video loop playsinline src="${item.url}" poster="https://via.placeholder.com/400x800/000000/FFFFFF?text=Loading..."></video>
                     <div class="danmaku-container"></div>
                     <div class="side-bar">
-                        <div class="side-icon"><div class="icon-circle" onclick="this.style.color='var(--douyin-red)'">❤️</div><span>1.2w</span></div>
-                        <div class="side-icon"><div class="icon-circle">💬</div><span>456</span></div>
-                        <div class="side-icon"><div class="icon-circle">🔗</div><span>分享</span></div>
+                        <div class="side-icon">
+                            <div class="icon-circle ${isLiked ? 'liked' : ''}" onclick="toggleLike(${videoId}, ${index})" id="likeBtn_${videoId}">❤️</div>
+                            <span id="likeCount_${videoId}">${formatCount(stats.likes)}</span>
+                        </div>
+                        <div class="side-icon">
+                            <div class="icon-circle" onclick="showComments(${videoId})">💬</div>
+                            <span id="commentCount_${videoId}">${formatCount(stats.comments)}</span>
+                        </div>
+                        <div class="side-icon">
+                            <div class="icon-circle" onclick="shareVideo(${videoId})">🔗</div>
+                            <span id="shareCount_${videoId}">${formatCount(stats.shares)}</span>
+                        </div>
                     </div>
                     <div class="bottom-info">
                         <div class="user-name">${item.user}</div>
@@ -202,7 +264,8 @@
                         <div class="team-up-btn" onclick="startMatch(${index})">🤝 一起组队探店</div>
                     </div>
                 </div>
-            `).join('');
+            `;
+            }).join('');
 
             if (swiper) swiper.destroy();
             swiper = new Swiper('.swiper', {
@@ -288,11 +351,281 @@
 
         function closeModal(id) {
             document.getElementById(id).style.display = 'none';
-            document.querySelectorAll('video')[swiper.activeIndex].play();
+            if (swiper && swiper.activeIndex !== undefined) {
+                const videos = document.querySelectorAll('video');
+                if (videos[swiper.activeIndex]) {
+                    videos[swiper.activeIndex].play();
+                }
+            }
+        }
+
+        // 格式化数字显示
+        function formatCount(count) {
+            if (count >= 10000) {
+                return (count / 10000).toFixed(1) + 'w';
+            } else if (count >= 1000) {
+                return (count / 1000).toFixed(1) + 'k';
+            }
+            return count.toString();
+        }
+
+        // 点赞功能
+        async function toggleLike(videoId, index) {
+            const btn = document.getElementById(`likeBtn_${videoId}`);
+            const countEl = document.getElementById(`likeCount_${videoId}`);
+            const isLiked = btn.classList.contains('liked');
+            
+            // 乐观更新UI
+            if (isLiked) {
+                btn.classList.remove('liked');
+                const currentCount = videoStats[videoId]?.likes || 0;
+                videoStats[videoId] = { ...videoStats[videoId], likes: Math.max(0, currentCount - 1) };
+            } else {
+                btn.classList.add('liked');
+                const currentCount = videoStats[videoId]?.likes || 0;
+                videoStats[videoId] = { ...videoStats[videoId], likes: currentCount + 1 };
+                localStorage.setItem(`liked_${videoId}`, 'true');
+            }
+            countEl.textContent = formatCount(videoStats[videoId].likes);
+            
+            // 调用API更新数据库
+            try {
+                const response = await fetch(`/api/likes/${videoId}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ action: isLiked ? 'unlike' : 'like' })
+                });
+                if (response.ok) {
+                    const data = await response.json();
+                    videoStats[videoId] = data.stats;
+                    countEl.textContent = formatCount(data.stats.likes);
+                }
+            } catch (error) {
+                console.error('点赞失败:', error);
+                // 失败时回滚
+                if (isLiked) {
+                    btn.classList.add('liked');
+                } else {
+                    btn.classList.remove('liked');
+                    localStorage.removeItem(`liked_${videoId}`);
+                }
+            }
+        }
+
+        // 显示评论
+        async function showComments(videoId) {
+            const modal = document.getElementById('commentModal');
+            const commentsList = document.getElementById('commentsList');
+            modal.style.display = 'flex';
+            
+            // 加载评论
+            try {
+                const response = await fetch(`/api/comments/${videoId}`);
+                if (response.ok) {
+                    const data = await response.json();
+                    videoComments[videoId] = data.comments;
+                    renderComments(videoId);
+                } else {
+                    // 如果API失败，使用预设评论
+                    renderComments(videoId);
+                }
+            } catch (error) {
+                console.error('加载评论失败:', error);
+                renderComments(videoId);
+            }
+        }
+
+        // 渲染评论列表
+        function renderComments(videoId) {
+            const commentsList = document.getElementById('commentsList');
+            const comments = videoComments[videoId] || [];
+            const video = videoData.find(v => v.id === videoId);
+            
+            // 如果没有评论，显示预设评论
+            if (comments.length === 0 && video) {
+                const presetComments = getPresetComments(video.cat);
+                commentsList.innerHTML = presetComments.map((comment, idx) => `
+                    <div class="comment-item">
+                        <div class="comment-user">@用户${idx + 1}</div>
+                        <div class="comment-content">${comment}</div>
+                        <div class="comment-time">${getTimeAgo(idx)}</div>
+                    </div>
+                `).join('');
+            } else {
+                commentsList.innerHTML = comments.map(comment => `
+                    <div class="comment-item">
+                        <div class="comment-user">${comment.user_name || '@匿名用户'}</div>
+                        <div class="comment-content">${comment.content}</div>
+                        <div class="comment-time">${formatTime(comment.created_at)}</div>
+                    </div>
+                `).join('');
+            }
+        }
+
+        // 获取预设评论
+        function getPresetComments(category) {
+            const presets = {
+                '美食': ["看起来很好吃", "在哪里", "多少钱", "想去试试"],
+                '学习': ["加油", "收藏了", "很有用", "共勉"],
+                '旅行': ["好想去", "攻略收藏", "太美了", "求地址"],
+                '游戏': ["带我", "厉害", "加好友", "一起玩"],
+                '校园生活': ["同校", "好羡慕", "点赞", "支持"]
+            };
+            return presets[category] || ["不错", "点赞", "支持", "加油"];
+        }
+
+        // 添加评论
+        async function addComment() {
+            const input = document.getElementById('newComment');
+            const content = input.value.trim();
+            if (!content) return;
+            
+            const currentVideo = videoData[swiper.activeIndex];
+            const videoId = currentVideo.id;
+            
+            // 乐观更新UI
+            const newComment = {
+                id: Date.now(),
+                video_id: videoId,
+                content: content,
+                user_name: '@游客' + Math.floor(Math.random() * 1000),
+                created_at: new Date().toISOString()
+            };
+            
+            if (!videoComments[videoId]) {
+                videoComments[videoId] = [];
+            }
+            videoComments[videoId].push(newComment);
+            renderComments(videoId);
+            input.value = '';
+            
+            // 更新评论数
+            const countEl = document.getElementById(`commentCount_${videoId}`);
+            if (countEl) {
+                const currentCount = videoStats[videoId]?.comments || 0;
+                videoStats[videoId] = { ...videoStats[videoId], comments: currentCount + 1 };
+                countEl.textContent = formatCount(videoStats[videoId].comments);
+            }
+            
+            // 调用API保存评论
+            try {
+                const response = await fetch(`/api/comments/${videoId}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ content: content })
+                });
+                if (response.ok) {
+                    const data = await response.json();
+                    videoComments[videoId] = data.comments;
+                    renderComments(videoId);
+                }
+            } catch (error) {
+                console.error('添加评论失败:', error);
+            }
+        }
+
+        // 分享功能
+        async function shareVideo(videoId) {
+            const shareUrl = 'https://short-video-1hg1.vercel.app/';
+            const video = videoData.find(v => v.id === videoId);
+            const shareText = `${video?.desc || '分享一个有趣的视频'}`;
+            
+            // 使用 Web Share API（移动端）
+            if (navigator.share) {
+                try {
+                    await navigator.share({
+                        title: '短视频分享',
+                        text: shareText,
+                        url: shareUrl
+                    });
+                    await updateShareCount(videoId);
+                } catch (error) {
+                    if (error.name !== 'AbortError') {
+                        // 如果分享失败，复制链接
+                        copyToClipboard(shareUrl);
+                    }
+                }
+            } else {
+                // 桌面端：复制链接
+                copyToClipboard(shareUrl);
+                await updateShareCount(videoId);
+            }
+        }
+
+        // 复制到剪贴板
+        function copyToClipboard(text) {
+            if (navigator.clipboard) {
+                navigator.clipboard.writeText(text).then(() => {
+                    alert('链接已复制到剪贴板！');
+                });
+            } else {
+                // 降级方案
+                const textarea = document.createElement('textarea');
+                textarea.value = text;
+                document.body.appendChild(textarea);
+                textarea.select();
+                document.execCommand('copy');
+                document.body.removeChild(textarea);
+                alert('链接已复制到剪贴板！');
+            }
+        }
+
+        // 更新分享数
+        async function updateShareCount(videoId) {
+            const countEl = document.getElementById(`shareCount_${videoId}`);
+            if (countEl) {
+                const currentCount = videoStats[videoId]?.shares || 0;
+                videoStats[videoId] = { ...videoStats[videoId], shares: currentCount + 1 };
+                countEl.textContent = formatCount(videoStats[videoId].shares);
+            }
+            
+            try {
+                await fetch(`/api/shares/${videoId}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' }
+                });
+            } catch (error) {
+                console.error('更新分享数失败:', error);
+            }
+        }
+
+        // 格式化时间
+        function formatTime(timeString) {
+            if (!timeString) return '刚刚';
+            const time = new Date(timeString);
+            const now = new Date();
+            const diff = now - time;
+            const minutes = Math.floor(diff / 60000);
+            if (minutes < 1) return '刚刚';
+            if (minutes < 60) return `${minutes}分钟前`;
+            const hours = Math.floor(minutes / 60);
+            if (hours < 24) return `${hours}小时前`;
+            const days = Math.floor(hours / 24);
+            return `${days}天前`;
+        }
+
+        function getTimeAgo(index) {
+            const times = ['刚刚', '5分钟前', '1小时前', '2小时前'];
+            return times[index] || '刚刚';
+        }
+
+        // 加载视频统计数据
+        async function loadVideoStats() {
+            try {
+                const response = await fetch('/api/videos/stats');
+                if (response.ok) {
+                    const data = await response.json();
+                    videoStats = data.stats || {};
+                }
+            } catch (error) {
+                console.error('加载统计数据失败:', error);
+            }
         }
 
         // 启动
-        initSwiper(videoData);
+        loadVideoStats().then(() => {
+            initSwiper(videoData);
+        });
     </script>
 </body>
 </html>
