@@ -202,7 +202,10 @@
             const wrapper = document.getElementById('videoWrapper');
             wrapper.innerHTML = data.map((item, index) => {
                 const videoId = item.id;
-                const stats = videoStats[videoId] || { likes: 0, comments: 0, shares: 0 };
+                if (!videoStats[videoId]) {
+                    videoStats[videoId] = { likes: Math.floor(Math.random() * 1001), comments: 0, shares: 0 };
+                }
+                const stats = videoStats[videoId];
                 const isLiked = localStorage.getItem(`liked_${videoId}`) === 'true';
                 return `
                 <div class="swiper-slide" data-id="${videoId}">
@@ -210,7 +213,7 @@
                     <div class="danmaku-container"></div>
                     <div class="side-bar">
                         <div class="side-icon">
-                            <div class="icon-circle ${isLiked ? 'liked' : ''}" onclick="toggleLike(${videoId}, ${index})" id="likeBtn_${videoId}">❤️</div>
+                            <div class="icon-circle ${isLiked ? 'liked' : ''}" onclick="toggleLike(${videoId}, ${index})" id="likeBtn_${videoId}">${isLiked ? '❤️' : '🤍'}</div>
                             <span id="likeCount_${videoId}">${formatCount(stats.likes)}</span>
                         </div>
                         <div class="side-icon">
@@ -361,10 +364,13 @@
             
             if (isLiked) {
                 btn.classList.remove('liked');
+                btn.textContent = '🤍';
                 const currentCount = videoStats[videoId]?.likes || 0;
                 videoStats[videoId] = { ...videoStats[videoId], likes: Math.max(0, currentCount - 1) };
+                localStorage.removeItem(`liked_${videoId}`);
             } else {
                 btn.classList.add('liked');
+                btn.textContent = '❤️';
                 const currentCount = videoStats[videoId]?.likes || 0;
                 videoStats[videoId] = { ...videoStats[videoId], likes: currentCount + 1 };
                 localStorage.setItem(`liked_${videoId}`, 'true');
@@ -386,8 +392,10 @@
                 console.error('点赞失败:', error);
                 if (isLiked) {
                     btn.classList.add('liked');
+                    btn.textContent = '❤️';
                 } else {
                     btn.classList.remove('liked');
+                    btn.textContent = '🤍';
                     localStorage.removeItem(`liked_${videoId}`);
                 }
             }
